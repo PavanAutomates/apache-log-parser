@@ -59,3 +59,23 @@ Log Generation Options
    -f FILE: Specify output log file location
    -v: Enable verbose output
    --aggressive: Speed up log generation
+
+## Sample Output
+CopyLog File Statistics:
+Total number of requests: 1000
+Total data transmitted: 2,500,000 bytes
+
+Most Requested Resource:
+Resource: /index.html
+Total requests: 250
+Percentage of requests: 25.00%
+
+Remote Host with Most Requests:
+Host: 192.168.1.100
+Total requests: 75
+Percentage of requests: 7.50%
+
+HTTP Status Code Percentages:
+2xx status codes: 85.00%
+4xx status codes: 10.00%
+5xx status codes: 5.00%
