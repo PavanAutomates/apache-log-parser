@@ -61,7 +61,7 @@ Log Generation Options
    --aggressive: Speed up log generation
 
 ## Sample Output
-CopyLog File Statistics:
+Log File Statistics:
 Total number of requests: 1000
 Total data transmitted: 2,500,000 bytes
 
