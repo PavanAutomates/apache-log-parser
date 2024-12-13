@@ -1,81 +1,86 @@
 # Apache Log Parser
 
-## Overview
-This tool parses Apache Combined Log Format files and generates comprehensive statistics about web server logs.
+## Project Overview
 
-## Requirements
-- Python 3.x
+A sophisticated Python-based log analysis tool designed to parse and extract meaningful insights from Apache Combined Log Format files. This project demonstrates proficiency in Python scripting, data parsing, and log analysis techniques.
+
+## Features
+
+- Robust log file parsing
+- Comprehensive statistical analysis
+- Error-tolerant design
+- Flexible command-line interface
 
 ## Installation
-1. Clone the repository
-2. (Optional) Create a virtual environment
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
+### Prerequisites
+
+- Python 3.x
+- No external library dependencies
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/PavanAutomates/apache-log-parser.git
+cd apache-log-parser
+```
+
+## Usage
+
+### Basic Parsing
+
+```bash
+# Parse a log file and generate statistics
+python log_parser.py -f /path/to/logfile.log
+```
+
+### Command-Line Arguments
+
+- `-f` or `--file`: Path to the log file (Required)
 
 ## Project Structure
 
+```
 apache-log-parser/
-│
-├── example/           # Sample log files
-│   └── logfile.log
-│
+├── examples/           # Sample log files
+│   └── example1.log
+│   └── example2.log
+│   └── real_apache_logs.log
 ├── scripts/           # Log generation utilities
 │   └── generate-logs.py
-│
 ├── log_parser.py      # Main log parsing script
 └── README.md          # Project documentation
-
-
-## Usage
-Basic Usage
-   To parse a log file and generate statistics:
-   bash
-   python log_parser.py -f /path/to/logfile.log
-
-Command-Line Arguments
-   -f or --file: Path to the log file (Required)
-   Example:
-   bash
-   python log_parser.py -f example/logfile.log
-
-## Sample Log Generation
-Generate Sample Logs
-
-   Basic Log Generation
-   bash
-   python scripts/generate-logs.py -f example/sample.log
-
-   Verbose Output
-   bash
-   python scripts/generate-logs.py -f example/sample.log -v
-
-   Aggressive Log Generation (Faster)
-   bash
-   python scripts/generate-logs.py -f example/sample.log --aggressive
-
-Log Generation Options
-   -f FILE: Specify output log file location
-   -v: Enable verbose output
-   --aggressive: Speed up log generation
+```
 
 ## Sample Output
-Log File Statistics:
-Total number of requests: 1000
-Total data transmitted: 2,500,000 bytes
 
-Most Requested Resource:
-Resource: /index.html
-Total requests: 250
-Percentage of requests: 25.00%
+```
+Total Requests: 10000
+Total Data Transmitted: 2.56 GiB
 
-Remote Host with Most Requests:
-Host: 192.168.1.100
-Total requests: 75
-Percentage of requests: 7.50%
+Most requested resource: /favicon.ico
+  Total requests for /favicon.ico: 807
+  Percentage of requests for /favicon.ico: 8.0700000000%
+
+Remote host with the most requests: 66.249.73.135
+  Total requests from 66.249.73.135: 482
+  Percentage of requests from 66.249.73.135: 4.8200000000%
 
 HTTP Status Code Percentages:
-2xx status codes: 85.00%
-4xx status codes: 10.00%
-5xx status codes: 5.00%
+  2xx: 91.7100000000%
+  4xx: 2.1700000000%
+  3xx: 6.0900000000%
+  5xx: 0.0300000000%
+```
+
+## Error Handling
+
+- Skips malformed log entries
+- Provides clear error messages
+- Continues processing valid log entries
+
+
+## About
+
+Developed as a technical assessment project demonstrating Python log parsing capabilities.

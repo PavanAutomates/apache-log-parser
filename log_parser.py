@@ -1,117 +1,98 @@
-import argparse
+#!/usr/bin/env python3
+
 import re
-from collections import defaultdict
-import os
+import argparse
+from collections import Counter
 
-class LogParser:
-    def __init__(self, log_file_path):
-        """
-        Initialize the log parser with the given log file path
-        
-        :param log_file_path: Path to the Apache log file
-        """
-        self.log_file_path = log_file_path
-        self.total_requests = 0
-        self.total_data_transmitted = 0
-        self.resource_requests = defaultdict(int)
-        self.host_requests = defaultdict(int)
-        self.status_code_counts = defaultdict(int)
+# Regex to parse the Combined Log Format
+LOG_PATTERN = re.compile(
+    r'(?P<host>\S+) \S+ \S+ \[(?P<datetime>[^\]]+)\] "(?P<method>\S+) (?P<resource>\S+) \S+" (?P<status>\d{3}) (?P<size>\d+|-)(?: "(?P<referrer>[^"]*)" "(?P<user_agent>[^"]*)")?'
+)
 
-    def parse_log(self):
-        """
-        Parse the log file and collect statistics
-        """
-        # Apache Combined Log Format regex pattern
-        log_pattern = re.compile(
-            r'(\S+) \S+ \S+ \[([^\]]+)\] "([^"]*)" (\d+) (\d+) "([^"]*)" "([^"]*)"'
-        )
+def human_readable_size(size_in_bytes):
+    """Convert bytes to a human-readable format."""
+    for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB']:
+        if size_in_bytes < 1024:
+            return f"{size_in_bytes:.2f} {unit}"
+        size_in_bytes /= 1024
 
-        try:
-            with open(self.log_file_path, 'r') as log_file:
-                for line in log_file:
-                    match = log_pattern.match(line.strip())
-                    
-                    if not match:
-                        # Skip lines that don't match the expected format
-                        continue
+def parse_log_line(line):
+    """Parse a log line and return a dictionary of values."""
+    match = LOG_PATTERN.match(line)
+    if not match:
+        return None
+    data = match.groupdict()
+    data["size"] = int(data["size"]) if data["size"] != "-" else 0
+    data["status"] = int(data["status"])
+    return data
 
-                    # Extract log components
-                    remote_host, timestamp, request, status_code, bytes_sent, referrer, user_agent = match.groups()
+def process_log_file(file_path):
+    """Process the log file and collect statistics."""
+    total_requests = 0
+    total_data = 0
+    resource_counter = Counter()
+    host_counter = Counter()
+    status_counter = Counter()
 
-                    # Track total requests
-                    self.total_requests += 1
+    with open(file_path, 'r') as file:
+        for line in file:
+            log_entry = parse_log_line(line)
+            if not log_entry:
+                continue
 
-                    # Track data transmitted
-                    try:
-                        self.total_data_transmitted += int(bytes_sent)
-                    except ValueError:
-                        pass
+            # Update statistics
+            total_requests += 1
+            total_data += log_entry["size"]
+            resource_counter[log_entry["resource"]] += 1
+            host_counter[log_entry["host"]] += 1
+            status_counter[log_entry["status"] // 100] += 1
 
-                    # Track resource requests
-                    try:
-                        resource = request.split()[1]
-                        self.resource_requests[resource] += 1
-                    except (IndexError, ValueError):
-                        pass
+    return {
+        "total_requests": total_requests,
+        "total_data": total_data,
+        "resource_counter": resource_counter,
+        "host_counter": host_counter,
+        "status_counter": status_counter,
+    }
 
-                    # Track host requests
-                    self.host_requests[remote_host] += 1
+def calculate_statistics(stats):
+    """Calculate and print statistics section-wise."""
+    print(f"Total Requests: {stats['total_requests']}")
+    print(f"Total Data Transmitted: {human_readable_size(stats['total_data'])}")
 
-                    # Track status code percentages
-                    self.status_code_counts[status_code[0] + 'xx'] += 1
+    # Most requested resource
+    most_requested_resource, resource_count = stats["resource_counter"].most_common(1)[0]
+    resource_percentage = (resource_count / stats["total_requests"]) * 100
+    print(f"\nMost requested resource: {most_requested_resource}")
+    print(f"  Total requests for {most_requested_resource}: {resource_count}")
+    print(f"  Percentage of requests for {most_requested_resource}: {resource_percentage:.10f}%")
 
-        except FileNotFoundError:
-            print(f"Error: Log file not found at {self.log_file_path}")
-            return False
-        
-        return True
+    # Remote host with most requests
+    top_host, host_count = stats["host_counter"].most_common(1)[0]
+    host_percentage = (host_count / stats["total_requests"]) * 100
+    print(f"\nRemote host with the most requests: {top_host}")
+    print(f"  Total requests from {top_host}: {host_count}")
+    print(f"  Percentage of requests from {top_host}: {host_percentage:.10f}%")
 
-    def print_statistics(self):
-        """
-        Print collected log file statistics
-        """
-        if self.total_requests == 0:
-            print("No valid log entries found.")
-            return
-
-        # Most requested resource
-        most_requested_resource = max(self.resource_requests, key=self.resource_requests.get)
-        resource_request_count = self.resource_requests[most_requested_resource]
-        resource_request_percentage = (resource_request_count / self.total_requests) * 100
-
-        # Remote host with most requests
-        most_requested_host = max(self.host_requests, key=self.host_requests.get)
-        host_request_count = self.host_requests[most_requested_host]
-        host_request_percentage = (host_request_count / self.total_requests) * 100
-
-        # Print statistics
-        print("Log File Statistics:")
-        print(f"Total number of requests: {self.total_requests}")
-        print(f"Total data transmitted: {self.total_data_transmitted} bytes")
-        
-        print("\nMost Requested Resource:")
-        print(f"Resource: {most_requested_resource}")
-        print(f"Total requests: {resource_request_count}")
-        print(f"Percentage of requests: {resource_request_percentage:.2f}%")
-        
-        print("\nRemote Host with Most Requests:")
-        print(f"Host: {most_requested_host}")
-        print(f"Total requests: {host_request_count}")
-        print(f"Percentage of requests: {host_request_percentage:.2f}%")
-        
-        print("\nHTTP Status Code Percentages:")
-        for code_class, count in sorted(self.status_code_counts.items()):
-            percentage = (count / self.total_requests) * 100
-            print(f"{code_class} status codes: {percentage:.2f}%")
+    # Status code percentages
+    print("\nHTTP Status Code Percentages:")
+    for status_class, count in stats["status_counter"].items():
+        percentage = (count / stats["total_requests"]) * 100
+        print(f"  {status_class}xx: {percentage:.10f}%")
 
 def main():
-    parser = argparse.ArgumentParser(description='Apache Log File Statistics Parser')
-    parser.add_argument('-f', '--file', required=True, help='Path to the log file')
+    """Main function to parse arguments and process the log file."""
+    parser = argparse.ArgumentParser(description="Analyze web server log files.")
+    parser.add_argument("-f", "--file", required=True, help="Path to the log file.")
     args = parser.parse_args()
 
-    log_parser = LogParser(args.file)
-    if log_parser.parse_log():
-        log_parser.print_statistics()
+    try:
+        stats = process_log_file(args.file)
+        calculate_statistics(stats)
+    except FileNotFoundError:
+        print(f"Error: File not found: {args.file}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
